@@ -1,0 +1,197 @@
+<!-- 2022_forbes_billionaires_clean -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+    <a href="LandingPage.html"> Home </a>
+  <h1>Top countries with billionaires</h1>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script>
+    // Define SVG area dimensions
+    let svgWidth = 960;
+    let svgHeight = 700;
+
+    // Define the chart's margins as an object
+    let margin = {
+      top: 20,
+      right: 200,
+      bottom: 250,
+      left: 20,
+    };
+
+    // Define dimensions of the chart area
+    let chartWidth = svgWidth - margin.left - margin.right;
+    let chartHeight = svgHeight - margin.top - margin.bottom;
+
+    // Select body, append SVG area to it, and set its dimensions
+    let svg = d3.select("body")
+      .append("svg")
+      .attr("width", svgWidth)
+      .attr("height", svgHeight);
+
+    // Append a group area, then set its margins
+    let chartGroup = svg.append("g")
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    // Load data from billionaires.csv
+    d3.csv("billionaires.csv").then(function(billionaireData) {
+
+      // Group data by 'country' and count the number of billionaires per country
+      let countryData = d3.group(billionaireData, d => d.country);
+      let countryCount = Array.from(countryData, ([country, billionaires]) => ({ country, count: billionaires.length }));
+
+      // Sort the data by count in descending order
+      countryCount.sort((a, b) => d3.descending(a.count, b.count));
+
+      // Define the number of countries to include in the pie chart
+      let numberOfCountries = 10;
+
+      // Extract the top countries based on the defined number
+      let topCountries = countryCount.slice(0, numberOfCountries);
+
+      // Set unique colors for the pie slices
+      let colorScale = d3.scaleOrdinal(d3.schemeSet3);
+
+      // Create the pie layout and generate the pie slices
+      let pie = d3.pie().value(d => d.count);
+      let pieData = pie(topCountries);
+
+      // Define the radius of the pie chart
+      let radius = Math.min(chartWidth, chartHeight) / 2;
+
+      // Create an arc generator for the pie slices
+      let arc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(radius);
+    
+      // Append a group for the pie chart
+      let pieGroup = chartGroup.append("g")
+        .attr("transform", `translate(${chartWidth / 2}, ${chartHeight / 2})`);
+
+      // Append the pie slices
+      pieGroup.selectAll(".arc")
+        .data(pieData)
+        .enter()
+        .append("path")
+        .attr("class", "arc")
+        .attr("d", arc)
+        .attr("fill", (d, i) => colorScale(i))
+        .attr("stroke", "lightgray") // Add stroke attribute for the pie slices
+        .attr("stroke-width", 1); // Set the stroke width for the pie slices
+
+        // Create a legend for the top countries
+        let legendGroup = chartGroup.append("g")
+        .attr("transform", `translate(${chartWidth + 20}, 20)`);
+
+        let legend = legendGroup.selectAll(".legend")
+        .data(topCountries)
+        .enter()
+        .append("g")
+        .attr("class", "legend")
+        .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+        legend.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 10)
+        .attr("height", 10)
+        .attr("fill", (d, i) => colorScale(i))
+        .attr("stroke", "lightgray")
+        .attr("stroke-width", 1);
+
+        legend.append("text")
+        .attr("x", 15)
+        .attr("y", 8)
+        .style("font-size", "12px")
+        .text(d => d.country);
+
+        // TAIWAN **************************************************************
+
+        // Filter the data for billionaires from Taiwan
+        let taiwanData = billionaireData.filter(d => d.country === "Taiwan");
+
+        // Group the data by industry and count the number of billionaires per industry
+        let taiwanIndustryData = d3.group(taiwanData, d => d.industry);
+        let taiwanIndustryCount = Array.from(taiwanIndustryData, ([industry, billionaires]) => ({ industry, count: billionaires.length }));
+
+        // Sort the taiwanIndustryCount array in descending order based on the count
+        taiwanIndustryCount.sort((a, b) => d3.descending(a.count, b.count));
+
+        // Create an ordinal scale for the color of the pie slices
+        let colorScale2 = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Define the radius for the smaller pie chart
+        let smallerPieRadius = 100;
+
+        // Define the spacing between the two pie charts
+        let pieSpacing = 100;
+
+
+        // Append a group for the smaller pie chart
+        let smallerPieGroup = chartGroup.append("g")
+        .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + pieSpacing + smallerPieRadius / 2})`);
+
+        // Create the smaller pie layout and generate the pie slices
+        let smallerPie = d3.pie().value(d => d.count);
+        let smallerPieData = smallerPie(taiwanIndustryCount);
+
+        // Create an arc generator for the smaller pie chart
+        let smallerPieArc = d3.arc()
+        .innerRadius(0)
+        .outerRadius(smallerPieRadius);
+
+        // Append the smaller pie slices
+        smallerPieGroup.selectAll(".smaller-arc")
+        .data(smallerPieData)
+        .enter()
+        .append("path")
+        .attr("class", "smaller-arc")
+        .attr("d", smallerPieArc)
+        .attr("fill", (d, i) => colorScale2(i))
+        .attr("stroke", "lightgray")
+        .attr("stroke-width", 1);
+
+        // Create a legend for the smaller pie chart
+        let smallerLegendGroup = chartGroup.append("g")
+        .attr("transform", `translate(${chartWidth + 20}, ${chartHeight + pieSpacing})`);
+
+        let smallerLegend = smallerLegendGroup.selectAll(".smaller-legend")
+        .data(taiwanIndustryCount)
+        .enter()
+        .append("g")
+        .attr("class", "smaller-legend")
+        .attr("transform", (d, i) => `translate(0, ${i * 20})`);
+
+        smallerLegend.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 10)
+        .attr("height", 10)
+        .attr("fill", (d, i) => colorScale2(i))
+        .attr("stroke", "lightgray")
+        .attr("stroke-width", 1);
+
+        smallerLegend.append("text")
+        .attr("x", 15)
+        .attr("y", 8)
+        .style("font-size", "12px")
+        .text(d => d.industry);
+
+        let bottomLabel = d3.select('body')
+            .append('p')
+            .text("Taiwan's billionaire distribution by industry")
+            .style('text-align', 'center')
+            .style('font-size', '14px');
+
+    }).catch(function(error) {
+      console.log(error);
+    });
+  </script>
+</body>
+</html>
+

@@ -1,0 +1,119 @@
+<!-- 2022_forbes_billionaires_clean -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <a href="LandingPage.html"> Home </a>
+    <h1>Combined Networth by industry</h1>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        // Define SVG area dimensions
+        let svgWidth = 960;
+        let svgHeight = 500;
+
+        // Define the chart's margins as an object
+        let margin = {
+        top: 20,
+        right: 40,
+        bottom: 120,
+        left: 100
+        };
+
+        // Define dimensions of the chart area
+        let chartWidth = svgWidth - margin.left - margin.right;
+        let chartHeight = svgHeight - margin.top - margin.bottom;
+
+        // Select body, append SVG area to it, and set its dimensions
+        let svg = d3.select("body")
+        .append("svg")
+        .attr("width", svgWidth)
+        .attr("height", svgHeight);
+
+        // Append a group area, then set its margins
+        let chartGroup = svg.append("g")
+        .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+        // Load data from billionaires.csv
+        d3.csv("billionaires.csv").then(function(billionaireData) {
+
+        // Parse the net worth value to a number
+        billionaireData.forEach(function(data) {
+            data.networth = +data.networth;
+        });
+
+        // Calculate total net worth for each industry
+        let data = Array.from(d3.rollup(billionaireData, 
+                                        v => d3.sum(v, d => d.networth),
+                                        d => d.industry), 
+                                ([industry, networth]) => ({industry, networth}));
+        
+        // Sort the data alphabetically by industry
+        data.sort((a, b) => d3.ascending(a.industry, b.industry));
+
+
+        // Create an ordinal scale for the x axis (industry)
+        let xScale = d3.scaleBand()
+            .domain(data.map(d => d.industry))
+            .range([0, chartWidth])
+            .padding(0.1);
+
+        // Create a linear scale for the y axis (total networth)
+        let yScale = d3.scaleLinear()
+            .domain([0, d3.max(data, d => d.networth)])
+            .range([chartHeight, 0]);
+
+        // Create axes
+        let xAxis = d3.axisBottom(xScale);
+        let yAxis = d3.axisLeft(yScale);
+
+        // Append axes to the chartGroup
+        chartGroup.append("g")
+        .attr("transform", `translate(0, ${chartHeight})`)
+        .call(xAxis)
+        .selectAll("text")  
+            .style("text-anchor", "end")
+            .attr("dx", "-.8em")
+            .attr("dy", ".15em")
+            .attr("transform", "rotate(-65)"); // You can change this value to get the desired angle
+
+        chartGroup.append("g")
+        .call(yAxis);
+
+        // Append a label to the y-axis
+        chartGroup.append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("y", 0 - margin.left + 50)
+            .attr("x",0 - (chartHeight / 2))
+            .attr("dy", "1em")
+            .style("text-anchor", "middle")
+            .style("font-size", "12px")
+            .text("Total Net Worth (in billions)");
+
+        // Create a color scale
+        let colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Create the bars
+        chartGroup.selectAll(".bar")
+            .data(data)
+            .enter()
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", d => xScale(d.industry))
+            .attr("y", d => yScale(d.networth))
+            .attr("width", xScale.bandwidth())
+            .attr("height", d => chartHeight - yScale(d.networth))
+            .attr("fill", (d, i) => colorScale(i));
+
+        }).catch(function(error) {
+        console.log(error);
+        });
+
+
+    </script>
+</body>
+</html>

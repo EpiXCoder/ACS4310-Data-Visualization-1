@@ -1,0 +1,98 @@
+<!-- 2022_forbes_billionaires_clean -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <a href="LandingPage.html"> Home </a>
+    <h1>Networth scale - a visual comparison</h1>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+            // Margin, Width, and Height Setup
+        let margin = {top: 20, right: 30, bottom: 40, left: 30},
+            width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
+
+        // Colors for the squares
+        let colors = ["#FFD700", "#C0C0C0", "#cd7f32", "#8C7853", "#E5AA70", "#D2691E", "#8B4513", "#A52A2A"];
+        // Define SVG
+        let svg = d3.select('body')
+        .append('svg')
+        .attr('width', width + margin.left + margin.right)
+        .attr('height', height + margin.top + margin.bottom)
+        .append('g')
+        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+        // Define color scale
+        let color = d3.scaleOrdinal(d3.schemeCategory10);
+
+        // Load CSV data
+        d3.csv("billionaires.csv").then(function(data) {
+            // Only consider the first 100 entries
+            data = data.slice(0, 100);
+
+            // Convert 'networth' from string to number
+            data.forEach(function(d) {
+                d.networth = +d.networth;
+            });
+
+            // Create a dummy hierarchy
+            let root = d3.hierarchy({values: data}, function(d) { return d.values; })
+                .sum(function(d) { return d.networth; })
+                .sort(function(a, b) { return b.value - a.value; });
+
+            // Create treemap layout
+            d3.treemap()
+                .size([width, height])
+                .padding(1)
+                .round(true)
+            (root);
+
+            // Draw rectangles for each node
+            svg.selectAll('rect')
+                .data(root.leaves())
+                .enter()
+                .append('rect')
+                .attr('x', function (d) { return d.x0; })
+                .attr('y', function (d) { return d.y0; })
+                .attr('width', function (d) { return d.x1 - d.x0; })
+                .attr('height', function (d) { return d.y1 - d.y0; })
+                .style('fill', function(d) { return color(d.data.name); });
+
+            svg.selectAll('text')
+                .data(root.leaves())
+                .enter()
+                .append('text')
+                .attr('x', function(d) { return d.x0 + (d.x1 - d.x0)/2; }) // center the text horizontally
+                .attr('y', function(d) { return d.y0 + (d.y1 - d.y0)/2; }) // center the text vertically
+                .attr('text-anchor', 'middle') // align the text in the middle horizontally
+                .attr('dominant-baseline', 'middle') // align the text in the middle vertically
+                .text(function(d) { return d.data.name; })
+                .attr('font-size', '10px')
+                .attr('fill', 'black');
+
+            // Add labels for top and bottom billionaires
+            let topBillionaire = data[0];
+            let bottomBillionaire = data[data.length - 1];
+
+            // Create paragraph elements for labels
+            let topLabel = d3.select('body')
+                .append('p')
+                .text('Highest in range: ' + topBillionaire.networth + ' B')
+                .style('text-align', 'center')
+                .style('font-size', '14px');
+
+            let bottomLabel = d3.select('body')
+                .append('p')
+                .text('Lowest in range: ' + bottomBillionaire.networth + ' B')
+                .style('text-align', 'center')
+                .style('font-size', '14px');
+
+        });
+    </script>
+</body>
+</html>
